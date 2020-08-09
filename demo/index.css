@@ -1,0 +1,17 @@
+.panel-seat {
+  height: 100px;
+}
+
+.panel-seat-active {
+  background-color: greenyellow;
+}
+
+.board-cell {
+  width: 64px;
+  height: 64px;
+}
+
+.btn-board-cell {
+  width: 100%;
+  height: 100%;
+}

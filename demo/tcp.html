@@ -1,0 +1,30 @@
+<script type="text/javascript">
+  var ws = new WebSocket('ws://127.0.0.1:3653/game')
+
+  ws.onopen = function() {
+      // Send Hello message
+  }
+
+  function send() {
+    ws.send(JSON.stringify({Hello: {
+        Name: document.getElementById("message").value,
+    }}))
+  }
+
+  ws.onmessage = function(e) {
+    if (event.data instanceof Blob) {
+      reader = new FileReader();
+
+      reader.onload = () => {
+          console.log("Result: " + reader.result);
+      };
+
+      reader.readAsText(event.data);
+    }
+  }
+</script>
+
+<input id="message" />
+<button onclick="send()">
+  TOGGLE
+</button>

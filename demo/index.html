@@ -1,0 +1,310 @@
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+
+<link rel="stylesheet" href="index.css">
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.0/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.19/lodash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<script src="sessionsocket.js"></script>
+<script src="playersocket.js"></script>
+<script src="roomsocket.js"></script>
+
+<script>
+  function handleEventData(event, raw, callback) {
+    const data = JSON.parse(raw);
+
+    callback(data);
+  }
+
+  function handleReponseData(raw, successCallback, errorCallback) {
+    const data = JSON.parse(raw);
+
+    if (data.Status == 200) {
+      if (successCallback) {
+        successCallback(data);
+      }
+    } else {
+      errorCallback(data);
+    }
+  }
+
+  function handleRequestData(data) {
+    const preset = {
+      authenticationToken: getAuthenticationToken(),
+    };
+
+    if (hasJoined()) {
+      preset['roomID'] = reducer.room.ID;
+    }
+
+    return JSON.stringify(Object.assign(preset, data));
+  }
+
+  function handleErrors(data) {
+    alert(`${data.Status} - ${data.Errors.Messages}`);
+  }
+
+  function toggleElementIsActive(s, isActive) {
+    const el = $(s);
+
+    if (isActive) {
+      el.show();
+    } else {
+      el.hide();
+    }
+  }
+
+  function setElementContent(s, content) {
+    $(s).html(content);
+  }
+
+  function prependElementContent(s, content) {
+    $(s).prepend(content);
+  }
+</script>
+
+<script>
+  function hasAuthenticated() {
+    return reducer.player !== null;
+  }
+
+  function hasJoined() {
+    return reducer.room !== null;
+  }
+
+  function getTurnLeftInSeconds() {
+    if (reducer.room) {
+      const now = new Date();
+      const turnEndAt = new Date(reducer.room.turnEndAt * 1000);
+
+      return Math.floor((turnEndAt - now) / 1000);
+    }
+  }
+
+  function reloadUI() {
+    const player = reducer.player;
+    const room = reducer.room;
+
+    toggleElementIsActive("#playerSection", hasAuthenticated());
+    toggleElementIsActive("#joinSection", !hasJoined() && hasAuthenticated());
+    toggleElementIsActive("#roomSection", hasJoined());
+
+    if (hasAuthenticated()) {
+      setElementContent("#playerSection #playerName", `Hi, ${player.Name}`);
+    }
+
+    if (hasJoined()) {
+      setElementContent("#roomSection #roomName", `Room #${room.ID} - ${room.state}`)
+
+      const rankingElements = _.map(reducer.room.rankings, function (winCount, playerName) {
+        return `
+          <div>
+            ${playerName} - ${winCount}
+          </div>
+        `;
+      }).join('');
+      setElementContent("#roomSection #rankingsSection", rankingElements);
+
+      const seatsContent = _.map(room.seats, function (seat) {
+        let seatDetailsContent = null;
+        let isActive = false;
+        let panelSeatKlass = '';
+
+        if (room.activeSeatPosition === seat.position) {
+          isActive = true;
+          panelSeatKlass = 'panel-seat-active';
+        }
+
+        if (seat.player) {
+          seatDetailsContent = `
+            <div>
+              ${seat.player.Name}
+            </div>
+          `;
+
+          if (isActive) {
+            timer = `
+              <div class="timer">
+                ${getTurnLeftInSeconds()}
+              </div>
+            `;
+
+            seatDetailsContent = `${seatDetailsContent}${timer}`;
+          }
+        } else {
+          seatDetailsContent = `
+            <button onclick="grabSeat(${seat.position})">
+              Grab Seat
+            </button>
+          `;
+        }
+
+        const seatContent = `
+          <div class="col-sm-3">
+            <div class="panel panel-default">
+              <div class="panel-heading">
+                Seat #${seat.position}
+              </div>
+              <div class="panel-body panel-seat ${panelSeatKlass}">
+                ${seatDetailsContent}
+              </div>
+            </div>
+          </div>
+        `;
+
+        return seatContent;
+      }).join('');
+      setElementContent("#roomSection #seatsSection", seatsContent);
+
+      $("#roomSection .board-cell").each(function(i, sel) {
+        const x = Math.floor(i / 3);
+        const y = i % 3;
+        const cell = room.cells[x][y];
+        let cellIndicator = '';
+
+        if (cell !== -1) {
+          if (cell == 0) {
+            cellIndicator = "O";
+          } else if (cell == 1) {
+            cellIndicator = "X";
+          }
+        }
+
+        const cellContent = `
+          <button class="btn-board-cell" onclick="makeMove(${x}, ${y})">
+            ${cellIndicator}
+          </button>
+        `;
+
+        setElementContent(sel, cellContent);
+      });
+
+      const events = reducer.events.slice();
+      events.reverse();
+      const eventsContent = _.map(events, function(event){
+        const eventContent = `
+          <li>
+            [${new Date(event.createdAt * 1000).toLocaleString("en-US")}]:
+            ${event.name}
+            ${_.map(event.parameters, function(parameter, key) {
+              return `
+                <label class="label label-info">
+                  ${key}: ${parameter}
+                </label>
+                &nbsp;
+              `;
+            }).join('')}
+          </li>
+        `;
+
+        return eventContent;
+      }).join('');
+
+      setElementContent("#roomSection #eventsSection", eventsContent);
+    }
+  }
+</script>
+
+<script>
+  var reducer = {
+    player: null,
+    room: null,
+    events: [],
+  };
+
+  $(document).ready(function () {
+    toastr.options.timeOut = 3000;
+
+    reloadUI();
+
+    setupSessionSocket();
+    setupPlayerSocket();
+    setupRoomSocket();
+
+    setInterval(() => {
+      $('.timer').html(getTurnLeftInSeconds());
+    }, 1000);
+  });
+</script>
+
+<div class="container">
+  <h4 id="playerSection">
+    <div id="playerName">
+    </div>
+  </h4>
+
+  <div id="joinSection">
+    <button onclick="join()">
+      JOIN
+    </button>
+  </div>
+
+  <hr />
+
+  <div id="roomSection">
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="label label-default" id="roomName">
+        </div>
+        <div class="pull-right" id="leaveSection">
+          <button onclick="leave()">
+            Leave
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="clearfix">
+    </div>
+
+    <div class="row">
+      <div class="col-sm-6">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            Rankings
+          </div>
+          <div class="panel-body">
+            <div id="rankingsSection">
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" id="seatsSection">
+    </div>
+
+    <table class="table table-bordered">
+      <tr>
+        <td class="board-cell"></td>
+        <td class="board-cell"></td>
+        <td class="board-cell"></td>
+      </tr>
+      <tr>
+        <td class="board-cell"></td>
+        <td class="board-cell"></td>
+        <td class="board-cell"></td>
+      </tr>
+      <tr>
+        <td class="board-cell"></td>
+        <td class="board-cell"></td>
+        <td class="board-cell"></td>
+      </tr>
+    </table>
+
+    <ul id="eventsSection">
+
+    </ul>
+
+    <div id="messageSection">
+      <input id="message" />
+      <button onclick="send()">
+        TOGGLE
+      </button>
+    </div>
+  </div>
+</div>
