@@ -189,7 +189,7 @@ func (room *Room) getWinner() int {
 
 	if winner == -2 {
 		if room.Cells[0][2] != -1 && room.Cells[0][2] == room.Cells[1][1] && room.Cells[1][1] == room.Cells[2][0] {
-			winner = room.Cells[0][0]
+			winner = room.Cells[0][2]
 		}
 	}
 

@@ -6,6 +6,7 @@ import (
 	"github.com/kooinam/fabio-demo/app/models"
 
 	"github.com/kooinam/fabio/controllers"
+	"github.com/kooinam/fabio/logger"
 	Models "github.com/kooinam/fabio/models"
 )
 
@@ -31,7 +32,7 @@ func (controller *RoomsController) AddActions(actionsHandler *controllers.Action
 func (controller *RoomsController) setCurrentPlayer(action string, connection *controllers.Connection) error {
 	var err error
 
-	authenticationToken := connection.Params("authenticationToken")
+	authenticationToken := connection.ParamsStr("authenticationToken")
 
 	currentPlayer := models.PlayersCollection.Find(func(base Models.Base) bool {
 		player := base.(*models.Player)
@@ -52,7 +53,7 @@ func (controller *RoomsController) setCurrentPlayer(action string, connection *c
 func (controller *RoomsController) setCurrentRoom(action string, connection *controllers.Connection) error {
 	var err error
 
-	roomID := connection.ParamsWithFallback("roomID", "").(string)
+	roomID := connection.ParamsStr("roomID")
 
 	currentRoom := models.RoomsCollection.FindByID(roomID)
 
@@ -67,6 +68,9 @@ func (controller *RoomsController) list(connection *controllers.Connection) (int
 	var err error
 	var roomsView interface{}
 
+	rooms := models.AssertRooms(models.RoomsCollection.GetItems())
+	roomsView = models.MakeRoomsView(rooms)
+
 	return roomsView, err
 }
 
@@ -76,9 +80,17 @@ func (controller *RoomsController) join(connection *controllers.Connection) (int
 	var roomView interface{}
 
 	currentPlayer := connection.Property("CurrentPlayer").(*models.Player)
-	room := models.JoinRoom(currentPlayer)
+	roomID := connection.ParamsStr("roomID")
 
-	connection.Join(room.ID)
+	logger.Debug(roomID)
+
+	room, err := models.JoinRoom(currentPlayer, roomID)
+
+	if err != nil {
+		return roomView, err
+	}
+
+	connection.SingleJoin(room.ID)
 
 	roomView = models.MakeRoomView(room, true)
 
@@ -99,13 +111,7 @@ func (controller *RoomsController) grabSeat(connection *controllers.Connection) 
 		return roomView, err
 	}
 
-	position, asserted := connection.ParamsWithFallback("position", -1).(float64)
-
-	if asserted == false {
-		err = fmt.Errorf("position is invalid")
-
-		return roomView, err
-	}
+	position := connection.ParamsInt("position", -1)
 
 	err = currentRoom.GrabSeat(currentPlayer, int(position))
 
@@ -157,8 +163,8 @@ func (controller *RoomsController) makeMove(connection *controllers.Connection) 
 		return roomView, err
 	}
 
-	x := int(connection.ParamsWithFallback("x", -1).(float64))
-	y := int(connection.ParamsWithFallback("y", -1).(float64))
+	x := connection.ParamsInt("x", -1)
+	y := connection.ParamsInt("y", -1)
 
 	err = currentRoom.MakeMove(currentPlayer, x, y)
 

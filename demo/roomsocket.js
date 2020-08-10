@@ -23,13 +23,13 @@ function setupRoomSocket() {
     console.log(error);
   });
 
-  const eventNames = ["running", "GrabbedSeat", "LeftSeat", "MadeMove", "Waiting", "Playing", "Completed"];
+  const eventNames = ["GrabbedSeat", "LeftSeat", "MadeMove", "Waiting", "Playing", "Completed"];
 
   for (var i = 0; i < eventNames.length; ++i) {
     const eventName = eventNames[i];
 
-    roomSocket.on(eventName, function (raw) {
-      handleEventData(eventName, raw, function (data) {
+    roomSocket.on(eventName, function(raw) {
+      handleEventData(eventName, raw, function(data) {
         const event = data.event;
         reducer.events.push(event);
 
@@ -43,29 +43,33 @@ function setupRoomSocket() {
 
 function populateRooms() {
   roomSocket.emit('List', handleRequestData({}), function (raw) {
-    handleReponseData(raw, function() {
+    handleReponseData(raw, function(data) {
+      reducer.rooms = data.response.rooms;
 
+      reloadUI();
     }, handleErrors)
   });
 }
 
-function join() {
-  roomSocket.emit('Join', handleRequestData({}), function (raw) {
-    handleReponseData(raw, onRoomJoined, handleErrors)
+function join(roomID) {
+  roomSocket.emit('Join', handleRequestData({
+    roomID: roomID,
+  }), function(raw) {
+    handleReponseData(raw, onRoomJoined, handleErrors);
   });
 }
 
 function leave() {
-  roomSocket.emit('Leave', handleRequestData({}), function (raw) {
-    handleReponseData(raw, onRoomLeft, handleErrors)
+  roomSocket.emit('Leave', handleRequestData({}), function(raw) {
+    handleReponseData(raw, onRoomLeft, handleErrors);
   });
 }
 
 function grabSeat(position) {
   roomSocket.emit('GrabSeat', handleRequestData({
     position: position,
-  }), function (raw) {
-    handleReponseData(raw, null, handleErrors)
+  }), function(raw) {
+    handleReponseData(raw, null, handleErrors);
   });
 }
 
@@ -78,10 +82,6 @@ function makeMove(x, y) {
 
     }, handleErrors)
   });
-}
-
-function send() {
-  console.log(document.getElementById("message").value);
 }
 
 function updateRoom(data) {

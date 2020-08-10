@@ -19,7 +19,7 @@ func init() {
 
 // Room used to represent room data
 type Room struct {
-	ID       string
+	ID       string `json:"id"`
 	runner   *models.Runner
 	State    *models.FiniteStateMachine `json:"-"`
 	Seats    *models.Collection         `json:"-"`
@@ -50,18 +50,39 @@ func makeRoom(args ...interface{}) models.Base {
 	return room
 }
 
+// AssertRooms used to convert items to rooms
+func AssertRooms(items []models.Base) []*Room {
+	rooms := make([]*Room, len(items))
+
+	for i, room := range items {
+		rooms[i] = room.(*Room)
+	}
+
+	return rooms
+}
+
 // GetID used to get ID
 func (room *Room) GetID() string {
 	return room.ID
 }
 
 // JoinRoom used to join a new room
-func JoinRoom(player *Player) *Room {
-	availableRoom := RoomsCollection.FindOrCreate(func(base models.Base) bool {
-		return true
+func JoinRoom(player *Player, roomID string) (*Room, error) {
+	var err error
+
+	availableRoom, asserted := RoomsCollection.Find(func(base models.Base) bool {
+		room := base.(*Room)
+
+		return room.ID == roomID
 	}).(*Room)
 
-	return availableRoom
+	if asserted == false {
+		err = fmt.Errorf("room not found")
+
+		return nil, err
+	}
+
+	return availableRoom, err
 }
 
 // GrabSeat used to grab a seat in room

@@ -41,8 +41,13 @@ func MakeRoomView(room *Room, includeRoot bool) interface{} {
 	return view
 }
 
-func MakeRoomsView(rooms *Room) []interface{} {
-	var views []interface{}
+func MakeRoomsView(rooms []*Room) interface{} {
+	roomsView := make([]interface{}, len(rooms))
+	for i, room := range rooms {
+		roomsView[i] = MakeRoomView(room, false)
+	}
 
-	return views
+	view := helpers.IncludeRootInJSON(roomsView, true, "rooms")
+
+	return view
 }

@@ -5,10 +5,15 @@ import (
 
 	fab "github.com/kooinam/fabio"
 	"github.com/kooinam/fabio-demo/app/controllers"
+	"github.com/kooinam/fabio-demo/app/models"
 )
 
 func main() {
 	fab.Setup()
+
+	models.RoomsCollection.Create()
+	models.RoomsCollection.Create()
+	models.RoomsCollection.Create()
 
 	fab.RegisterController("session", &controllers.SessionsController{})
 	fab.RegisterController("player", &controllers.PlayersController{})

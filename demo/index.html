@@ -38,7 +38,7 @@
     };
 
     if (hasJoined()) {
-      preset['roomID'] = reducer.room.ID;
+      preset['roomID'] = reducer.room.id;
     }
 
     return JSON.stringify(Object.assign(preset, data));
@@ -88,9 +88,38 @@
   function reloadUI() {
     const player = reducer.player;
     const room = reducer.room;
+    const rooms = reducer.rooms;
 
     toggleElementIsActive("#playerSection", hasAuthenticated());
     toggleElementIsActive("#joinSection", !hasJoined() && hasAuthenticated());
+
+    const roomsContent = _.map(rooms, function (room) {
+      const grabbedSeats = _.filter(room.seats, function(seat) {
+        return seat.player != null;
+      });
+
+      const roomContent = `
+          <div class="col-sm-3">
+            <div class="panel panel-default">
+              <div class="panel-heading">
+                Room #${room.id}
+              </div>
+              <div class="panel-body">
+                <div>
+                  ${grabbedSeats.length} / ${room.seats.length}
+                </div>
+                <button onclick="join(${room.id})">
+                  JOIN
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+
+      return roomContent;
+    }).join('');
+    setElementContent("#joinSection #roomsSection", roomsContent);
+
     toggleElementIsActive("#roomSection", hasJoined());
 
     if (hasAuthenticated()) {
@@ -98,7 +127,7 @@
     }
 
     if (hasJoined()) {
-      setElementContent("#roomSection #roomName", `Room #${room.ID} - ${room.state}`)
+      setElementContent("#roomSection #roomName", `Room #${room.id} - ${room.state}`)
 
       const rankingElements = _.map(reducer.room.rankings, function (winCount, playerName) {
         return `
@@ -214,6 +243,7 @@
     player: null,
     room: null,
     events: [],
+    rooms: [],
   };
 
   $(document).ready(function () {
@@ -237,13 +267,12 @@
     </div>
   </h4>
 
-  <div id="joinSection">
-    <button onclick="join()">
-      JOIN
-    </button>
-  </div>
-
   <hr />
+
+  <div id="joinSection">
+    <div id="roomsSection" class="row">
+    </div>
+  </div>
 
   <div id="roomSection">
     <div class="row">
@@ -268,7 +297,6 @@
           </div>
           <div class="panel-body">
             <div id="rankingsSection">
-
             </div>
           </div>
         </div>

@@ -24,7 +24,7 @@ func (controller *SessionsController) AddActions(actionsHandler *controllers.Act
 func (controller *SessionsController) authenticate(connection *controllers.Connection) (interface{}, error) {
 	var playerView interface{}
 
-	authenticationToken := connection.ParamsWithFallback("authenticationToken", "").(string)
+	authenticationToken := connection.ParamsStr("authenticationToken")
 
 	player := models.AuthenticatePlayer(authenticationToken)
 	playerView = models.MakeAuthenticationPlayerView(player, true)
