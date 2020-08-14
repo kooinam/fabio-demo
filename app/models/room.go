@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	fab "github.com/kooinam/fabio"
+	"github.com/kooinam/fabio/actors"
 	"github.com/kooinam/fabio/helpers"
 	"github.com/kooinam/fabio/models"
 )
@@ -13,29 +14,27 @@ const gridSize = 3
 // RoomsCollection is singleton for RoomsCollection
 var RoomsCollection *models.Collection
 
-func init() {
-	RoomsCollection = models.MakeCollection(makeRoom)
-}
-
 // Room used to represent room data
 type Room struct {
-	ID       string `json:"id"`
-	runner   *models.Runner
+	models.Base
+	actor    *actors.Actor
 	State    *models.FiniteStateMachine `json:"-"`
 	Seats    *models.Collection         `json:"-"`
 	Cells    [gridSize][gridSize]int    `json:"cells"`
 	Rankings map[string]int             `json:"rankings"`
 }
 
-func makeRoom(args ...interface{}) models.Base {
-	room := &Room{
-		ID:       fmt.Sprintf("%v", RoomsCollection.Count()+1),
-		Seats:    models.MakeCollection(makeRoomSeat),
-		Rankings: make(map[string]int),
-	}
+// MakeRoom used to instantiate room
+func MakeRoom(collection *models.Collection, args ...interface{}) models.Modellable {
+	room := &Room{}
 
+	room.Initialize(collection)
+
+	room.Seats = fab.ModelManager().CreateCollection("room_seats", makeRoomSeat)
+	room.Rankings = make(map[string]int)
+
+	room.actor = fab.ActorManager().RegisterActor(room)
 	room.State = makeRoomFSM(room)
-	room.runner = models.MakeRunner(room.Run, 2)
 
 	helpers.Times(2, func(i int) bool {
 		room.Seats.Create(i)
@@ -45,36 +44,25 @@ func makeRoom(args ...interface{}) models.Base {
 
 	room.resetCells()
 
-	room.runner.Ch <- 1 // start room runner
-
 	return room
 }
 
 // AssertRooms used to convert items to rooms
-func AssertRooms(items []models.Base) []*Room {
+func AssertRooms(items []models.Modellable) []*Room {
 	rooms := make([]*Room, len(items))
 
-	for i, room := range items {
-		rooms[i] = room.(*Room)
+	for i, item := range items {
+		rooms[i] = item.(*Room)
 	}
 
 	return rooms
-}
-
-// GetID used to get ID
-func (room *Room) GetID() string {
-	return room.ID
 }
 
 // JoinRoom used to join a new room
 func JoinRoom(player *Player, roomID string) (*Room, error) {
 	var err error
 
-	availableRoom, asserted := RoomsCollection.Find(func(base models.Base) bool {
-		room := base.(*Room)
-
-		return room.ID == roomID
-	}).(*Room)
+	availableRoom, asserted := RoomsCollection.FindByID(roomID).(*Room)
 
 	if asserted == false {
 		err = fmt.Errorf("room not found")
@@ -85,12 +73,16 @@ func JoinRoom(player *Player, roomID string) (*Room, error) {
 	return availableRoom, err
 }
 
+func (room *Room) RegisterActions(actionsHandler *actors.ActionsHandler) {
+	actionsHandler.RegisterAction("Update", room.Run)
+}
+
 // GrabSeat used to grab a seat in room
 func (room *Room) GrabSeat(player *Player, position int) error {
 	var err error
 
-	originalSeat, asserted := room.Seats.Find(func(base models.Base) bool {
-		seat := base.(*RoomSeat)
+	originalSeat, asserted := room.Seats.Find(func(item models.Modellable) bool {
+		seat := item.(*RoomSeat)
 
 		return seat.isGrabbedBy(player)
 	}).(*RoomSeat)
@@ -103,8 +95,8 @@ func (room *Room) GrabSeat(player *Player, position int) error {
 		}
 	}
 
-	foundSeat, asserted := room.Seats.Find(func(base models.Base) bool {
-		seat := base.(*RoomSeat)
+	foundSeat, asserted := room.Seats.Find(func(item models.Modellable) bool {
+		seat := item.(*RoomSeat)
 
 		return seat.Position == position
 	}).(*RoomSeat)
@@ -136,7 +128,7 @@ func (room *Room) GrabSeat(player *Player, position int) error {
 		"seat": foundSeat.Position,
 	}
 
-	fab.BroadcastEvent("room", room.ID, "GrabbedSeat", roomView, parameters)
+	fab.ControllerManager().BroadcastEvent("room", room.GetID(), "GrabbedSeat", roomView, parameters)
 
 	return err
 }
@@ -145,8 +137,8 @@ func (room *Room) GrabSeat(player *Player, position int) error {
 func (room *Room) Leave(player *Player) error {
 	var err error
 
-	originalSeat, asserted := room.Seats.Find(func(base models.Base) bool {
-		seat := base.(*RoomSeat)
+	originalSeat, asserted := room.Seats.Find(func(item models.Modellable) bool {
+		seat := item.(*RoomSeat)
 
 		return seat.isGrabbedBy(player)
 	}).(*RoomSeat)
@@ -165,7 +157,7 @@ func (room *Room) Leave(player *Player) error {
 			"seat": originalSeat.Position,
 		}
 
-		fab.BroadcastEvent("room", room.ID, "LeftSeat", roomView, parameters)
+		fab.ControllerManager().BroadcastEvent("room", room.GetID(), "LeftSeat", roomView, parameters)
 	}
 
 	return err
@@ -187,8 +179,8 @@ func (room *Room) MakeMove(player *Player, x int, y int) error {
 		return err
 	}
 
-	playerSeat, asserted := room.Seats.Find(func(base models.Base) bool {
-		seat := base.(*RoomSeat)
+	playerSeat, asserted := room.Seats.Find(func(item models.Modellable) bool {
+		seat := item.(*RoomSeat)
 
 		return seat.isGrabbedBy(player)
 	}).(*RoomSeat)
@@ -233,7 +225,7 @@ func (room *Room) MakeMove(player *Player, x int, y int) error {
 		"cellY": y,
 	}
 
-	fab.BroadcastEvent("room", room.ID, "MadeMove", roomView, parameters)
+	fab.ControllerManager().BroadcastEvent("room", room.GetID(), "MadeMove", roomView, parameters)
 
 	return err
 }
@@ -246,8 +238,12 @@ func (room *Room) GetSeats() []*RoomSeat {
 }
 
 // Run to run room every regularly
-func (room *Room) Run() {
+func (room *Room) Run(context *actors.Context) error {
+	var err error
+
 	room.State.Run(room)
+
+	return err
 }
 
 func (room *Room) resetCells() {

@@ -6,36 +6,35 @@ import (
 	"github.com/kooinam/fabio-demo/app/models"
 
 	"github.com/kooinam/fabio/controllers"
-	"github.com/kooinam/fabio/logger"
 	Models "github.com/kooinam/fabio/models"
 )
 
-// RoomsController used for rooms actions
+// RoomsController is controller for room's actions
 type RoomsController struct {
 }
 
-// AddBeforeActions used to add before actions callbacks
-func (controller *RoomsController) AddBeforeActions(callbacksHandler *controllers.CallbacksHandler) {
-	callbacksHandler.AddBeforeAction(controller.setCurrentPlayer)
-	callbacksHandler.AddBeforeAction(controller.setCurrentRoom)
+// RegisterBeforeHooks used to register before action hooks
+func (controller *RoomsController) RegisterBeforeHooks(hooksHandler *controllers.HooksHandler) {
+	hooksHandler.RegisterBeforeHook(controller.setCurrentPlayer)
+	hooksHandler.RegisterBeforeHook(controller.setCurrentRoom)
 }
 
-// AddActions used to add actions
-func (controller *RoomsController) AddActions(actionsHandler *controllers.ActionsHandler) {
-	actionsHandler.AddAction("List", controller.list)
-	actionsHandler.AddAction("Join", controller.join)
-	actionsHandler.AddAction("GrabSeat", controller.grabSeat)
-	actionsHandler.AddAction("Leave", controller.leave)
-	actionsHandler.AddAction("MakeMove", controller.makeMove)
+// RegisterActions used to register actions
+func (controller *RoomsController) RegisterActions(actionsHandler *controllers.ActionsHandler) {
+	actionsHandler.RegisterAction("List", controller.list)
+	actionsHandler.RegisterAction("Join", controller.join)
+	actionsHandler.RegisterAction("GrabSeat", controller.grabSeat)
+	actionsHandler.RegisterAction("Leave", controller.leave)
+	actionsHandler.RegisterAction("MakeMove", controller.makeMove)
 }
 
-func (controller *RoomsController) setCurrentPlayer(action string, connection *controllers.Connection) error {
+func (controller *RoomsController) setCurrentPlayer(action string, connection *controllers.Context) error {
 	var err error
 
 	authenticationToken := connection.ParamsStr("authenticationToken")
 
-	currentPlayer := models.PlayersCollection.Find(func(base Models.Base) bool {
-		player := base.(*models.Player)
+	currentPlayer := models.PlayersCollection.Find(func(item Models.Modellable) bool {
+		player := item.(*models.Player)
 
 		return player.GetAuthenticationToken() == authenticationToken
 	})
@@ -50,21 +49,21 @@ func (controller *RoomsController) setCurrentPlayer(action string, connection *c
 }
 
 // setCurrentRoom used to set current room
-func (controller *RoomsController) setCurrentRoom(action string, connection *controllers.Connection) error {
+func (controller *RoomsController) setCurrentRoom(action string, context *controllers.Context) error {
 	var err error
 
-	roomID := connection.ParamsStr("roomID")
+	roomID := context.ParamsStr("roomID")
 
 	currentRoom := models.RoomsCollection.FindByID(roomID)
 
 	if currentRoom != nil {
-		connection.SetProperty("CurrentRoom", currentRoom)
+		context.SetProperty("CurrentRoom", currentRoom)
 	}
 
 	return err
 }
 
-func (controller *RoomsController) list(connection *controllers.Connection) (interface{}, error) {
+func (controller *RoomsController) list(context *controllers.Context) (interface{}, error) {
 	var err error
 	var roomsView interface{}
 
@@ -75,14 +74,12 @@ func (controller *RoomsController) list(connection *controllers.Connection) (int
 }
 
 // join used for player to join a room
-func (controller *RoomsController) join(connection *controllers.Connection) (interface{}, error) {
+func (controller *RoomsController) join(context *controllers.Context) (interface{}, error) {
 	var err error
 	var roomView interface{}
 
-	currentPlayer := connection.Property("CurrentPlayer").(*models.Player)
-	roomID := connection.ParamsStr("roomID")
-
-	logger.Debug(roomID)
+	currentPlayer := context.Property("CurrentPlayer").(*models.Player)
+	roomID := context.ParamsStr("roomID")
 
 	room, err := models.JoinRoom(currentPlayer, roomID)
 
@@ -90,7 +87,7 @@ func (controller *RoomsController) join(connection *controllers.Connection) (int
 		return roomView, err
 	}
 
-	connection.SingleJoin(room.ID)
+	context.SingleJoin(room.ID)
 
 	roomView = models.MakeRoomView(room, true)
 
@@ -98,12 +95,12 @@ func (controller *RoomsController) join(connection *controllers.Connection) (int
 }
 
 // GrabSeat used for player to grab seat in room
-func (controller *RoomsController) grabSeat(connection *controllers.Connection) (interface{}, error) {
+func (controller *RoomsController) grabSeat(context *controllers.Context) (interface{}, error) {
 	var err error
 	var roomView interface{}
 
-	currentPlayer := connection.Property("CurrentPlayer").(*models.Player)
-	currentRoom, asserted := connection.Property("CurrentRoom").(*models.Room)
+	currentPlayer := context.Property("CurrentPlayer").(*models.Player)
+	currentRoom, asserted := context.Property("CurrentRoom").(*models.Room)
 
 	if asserted == false {
 		err = fmt.Errorf("room not found")
@@ -111,7 +108,7 @@ func (controller *RoomsController) grabSeat(connection *controllers.Connection) 
 		return roomView, err
 	}
 
-	position := connection.ParamsInt("position", -1)
+	position := context.ParamsInt("position", -1)
 
 	err = currentRoom.GrabSeat(currentPlayer, int(position))
 
@@ -125,12 +122,12 @@ func (controller *RoomsController) grabSeat(connection *controllers.Connection) 
 }
 
 // Leave used for player to leave a room
-func (controller *RoomsController) leave(connection *controllers.Connection) (interface{}, error) {
+func (controller *RoomsController) leave(context *controllers.Context) (interface{}, error) {
 	var err error
 	var roomView interface{}
 
-	currentPlayer := connection.Property("CurrentPlayer").(*models.Player)
-	currentRoom, asserted := connection.Property("CurrentRoom").(*models.Room)
+	currentPlayer := context.Property("CurrentPlayer").(*models.Player)
+	currentRoom, asserted := context.Property("CurrentRoom").(*models.Room)
 
 	if asserted == false {
 		err = fmt.Errorf("room not found")
@@ -150,12 +147,12 @@ func (controller *RoomsController) leave(connection *controllers.Connection) (in
 }
 
 // MakeMove used for player to make move in room
-func (controller *RoomsController) makeMove(connection *controllers.Connection) (interface{}, error) {
+func (controller *RoomsController) makeMove(context *controllers.Context) (interface{}, error) {
 	var err error
 	var roomView interface{}
 
-	currentPlayer := connection.Property("CurrentPlayer").(*models.Player)
-	currentRoom, asserted := connection.Property("CurrentRoom").(*models.Room)
+	currentPlayer := context.Property("CurrentPlayer").(*models.Player)
+	currentRoom, asserted := context.Property("CurrentRoom").(*models.Room)
 
 	if asserted == false {
 		err = fmt.Errorf("room not found")
@@ -163,8 +160,8 @@ func (controller *RoomsController) makeMove(connection *controllers.Connection) 
 		return roomView, err
 	}
 
-	x := connection.ParamsInt("x", -1)
-	y := connection.ParamsInt("y", -1)
+	x := context.ParamsInt("x", -1)
+	y := context.ParamsInt("y", -1)
 
 	err = currentRoom.MakeMove(currentPlayer, x, y)
 

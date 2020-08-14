@@ -13,7 +13,7 @@ type RoomView struct {
 	ActiveSeatPosition int             `json:"activeSeatPosition"`
 }
 
-// MakeRoomView used to instantiate room view
+// MakeRoomView used to instantiate room's view
 func MakeRoomView(room *Room, includeRoot bool) interface{} {
 	seatViews := make([]*RoomSeatView, room.Seats.Count())
 
@@ -41,6 +41,7 @@ func MakeRoomView(room *Room, includeRoot bool) interface{} {
 	return view
 }
 
+// MakeRoomsView used to instantiate rooms' view
 func MakeRoomsView(rooms []*Room) interface{} {
 	roomsView := make([]interface{}, len(rooms))
 	for i, room := range rooms {

@@ -10,24 +10,23 @@ import (
 type SessionsController struct {
 }
 
-// AddBeforeActions used to add before actions callbacks
-func (controller *SessionsController) AddBeforeActions(callbacksHandler *controllers.CallbacksHandler) {
-	// controller.callbacksHandler.AddBeforeAction(controller.SetCurrentPlayer)
+// RegisterBeforeHooks used to register before action hooks
+func (controller *SessionsController) RegisterBeforeHooks(hooksHandler *controllers.HooksHandler) {
 }
 
-// AddActions used to add actions
-func (controller *SessionsController) AddActions(actionsHandler *controllers.ActionsHandler) {
-	actionsHandler.AddAction("Authenticate", controller.authenticate)
+// RegisterActions used to register actions
+func (controller *SessionsController) RegisterActions(actionsHandler *controllers.ActionsHandler) {
+	actionsHandler.RegisterAction("Authenticate", controller.authenticate)
 }
 
 // authenticate used to authenticate a player
-func (controller *SessionsController) authenticate(connection *controllers.Connection) (interface{}, error) {
+func (controller *SessionsController) authenticate(connection *controllers.Context) (interface{}, error) {
 	var playerView interface{}
 
 	authenticationToken := connection.ParamsStr("authenticationToken")
 
 	player := models.AuthenticatePlayer(authenticationToken)
-	playerView = models.MakeAuthenticationPlayerView(player, true)
+	playerView = models.MakeAuthenticatedPlayerView(player, true)
 
 	return playerView, nil
 }

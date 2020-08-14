@@ -2,15 +2,14 @@ package controllers
 
 import "github.com/kooinam/fabio/controllers"
 
+// PlayersController is controller for player's actions
 type PlayersController struct {
 }
 
-// AddBeforeActions used to add before actions callbacks
-func (controller *PlayersController) AddBeforeActions(callbacksHandler *controllers.CallbacksHandler) {
-	// controller.callbacksHandler.AddBeforeAction(controller.SetCurrentPlayer)
+// RegisterBeforeHooks used to register before action hooks
+func (controller *PlayersController) RegisterBeforeHooks(hooksHandler *controllers.HooksHandler) {
 }
 
-// AddActions used to add actions
-func (controller *PlayersController) AddActions(actionsHandler *controllers.ActionsHandler) {
-	// controller.callbacksHandler.AddBeforeAction(controller.SetCurrentPlayer)
+// RegisterActions used to register actions
+func (controller *PlayersController) RegisterActions(actionsHandler *controllers.ActionsHandler) {
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/kooinam/fabio/helpers"
 )
 
+// MakePlayerView used to instantiate player's view
 func MakePlayerView(player *Player, includeRoot bool) interface{} {
 	var view interface{}
 
@@ -21,7 +22,8 @@ func MakePlayerView(player *Player, includeRoot bool) interface{} {
 	return view
 }
 
-func MakeAuthenticationPlayerView(player *Player, includeRoot bool) interface{} {
+// MakeAuthenticatedPlayerView used to instantiate authenticated player's view
+func MakeAuthenticatedPlayerView(player *Player, includeRoot bool) interface{} {
 	var view interface{}
 
 	if player != nil {

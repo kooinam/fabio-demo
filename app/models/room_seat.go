@@ -8,32 +8,31 @@ import (
 
 // RoomSeat is used to represent seat in room
 type RoomSeat struct {
-	ID          string
+	models.Base
 	Position    int `json:"position"`
 	player      *Player
 	hasMadeMove bool
 }
 
-func makeRoomSeat(args ...interface{}) models.Base {
-	return &RoomSeat{
-		Position: args[0].(int),
-	}
+func makeRoomSeat(collection *models.Collection, args ...interface{}) models.Modellable {
+	roomSeat := &RoomSeat{}
+
+	roomSeat.Initialize(collection)
+
+	roomSeat.Position = args[0].(int)
+
+	return roomSeat
 }
 
 // assertRoomSeats used to convert items to room seats
-func assertRoomSeats(items []models.Base) []*RoomSeat {
+func assertRoomSeats(items []models.Modellable) []*RoomSeat {
 	seats := make([]*RoomSeat, len(items))
 
-	for i, seat := range items {
-		seats[i] = seat.(*RoomSeat)
+	for i, item := range items {
+		seats[i] = item.(*RoomSeat)
 	}
 
 	return seats
-}
-
-// GetID used to get ID
-func (seat *RoomSeat) GetID() string {
-	return seat.ID
 }
 
 // Grab used to grab seat
@@ -75,7 +74,7 @@ func (seat *RoomSeat) isEmpty() bool {
 func (seat *RoomSeat) isGrabbedBy(player *Player) bool {
 	isGrabbedByPlayer := false
 
-	if seat.player != nil && seat.player.ID == player.ID {
+	if seat.player != nil && seat.player.GetID() == player.GetID() {
 		isGrabbedByPlayer = true
 	}
 

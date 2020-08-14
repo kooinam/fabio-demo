@@ -45,12 +45,12 @@ func makeRoomFSM(room *Room) *models.FiniteStateMachine {
 func (room *Room) enterWaiting(previous string) {
 	roomView := MakeRoomView(room, true)
 
-	fab.BroadcastEvent("room", room.ID, RoomStates.Waiting, roomView, nil)
+	fab.ControllerManager().BroadcastEvent("room", room.GetID(), RoomStates.Waiting, roomView, nil)
 }
 
 func (room *Room) doWaiting() {
-	emptySeat := room.Seats.Find(func(base models.Base) bool {
-		seat := base.(*RoomSeat)
+	emptySeat := room.Seats.Find(func(item models.Modellable) bool {
+		seat := item.(*RoomSeat)
 
 		return seat.isEmpty()
 	})
@@ -72,7 +72,7 @@ func (room *Room) enterPlaying(previous string) {
 		"seat": activeSeat.Position,
 	}
 
-	fab.BroadcastEvent("room", room.ID, RoomStates.Playing, roomView, parameters)
+	fab.ControllerManager().BroadcastEvent("room", room.GetID(), RoomStates.Playing, roomView, parameters)
 }
 
 func (room *Room) doPlaying() {
@@ -121,8 +121,8 @@ func (room *Room) doPlaying() {
 func (room *Room) enterCompleted(previous string) {
 	// increment winner in ranking
 	winner := room.getWinner()
-	winnerSeat, asserted := room.Seats.Find(func(base models.Base) bool {
-		seat := base.(*RoomSeat)
+	winnerSeat, asserted := room.Seats.Find(func(item models.Modellable) bool {
+		seat := item.(*RoomSeat)
 
 		return seat.Position == winner
 	}).(*RoomSeat)
@@ -137,7 +137,7 @@ func (room *Room) enterCompleted(previous string) {
 		"winner": winner,
 	}
 
-	fab.BroadcastEvent("room", room.ID, RoomStates.Completed, roomView, parameters)
+	fab.ControllerManager().BroadcastEvent("room", room.GetID(), RoomStates.Completed, roomView, parameters)
 }
 
 func (room *Room) doCompleted() {
@@ -220,8 +220,8 @@ func (room *Room) getWinner() int {
 func (room *Room) getNextSeat() *RoomSeat {
 	activeSeat := room.State.GetActiveAgent().(*RoomSeat)
 
-	nextSeat := room.Seats.Find(func(base models.Base) bool {
-		seat := base.(*RoomSeat)
+	nextSeat := room.Seats.Find(func(item models.Modellable) bool {
+		seat := item.(*RoomSeat)
 
 		return seat.Position > activeSeat.Position
 	})

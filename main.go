@@ -11,15 +11,18 @@ import (
 func main() {
 	fab.Setup()
 
+	models.PlayersCollection = fab.ModelManager().CreateCollection("players", models.MakePlayer)
+	models.RoomsCollection = fab.ModelManager().CreateCollection("rooms", models.MakeRoom)
+
 	models.RoomsCollection.Create()
 	models.RoomsCollection.Create()
 	models.RoomsCollection.Create()
 
-	fab.RegisterController("session", &controllers.SessionsController{})
-	fab.RegisterController("player", &controllers.PlayersController{})
-	fab.RegisterController("room", &controllers.RoomsController{})
+	fab.ControllerManager().RegisterController("session", &controllers.SessionsController{})
+	fab.ControllerManager().RegisterController("player", &controllers.PlayersController{})
+	fab.ControllerManager().RegisterController("room", &controllers.RoomsController{})
 
-	fab.Serve(func() {
+	fab.ControllerManager().Serve(func() {
 		fs := http.FileServer(http.Dir("./demo"))
 		http.Handle("/demo/", http.StripPrefix("/demo/", fs))
 	})
