@@ -45,7 +45,7 @@ func makeRoomFSM(room *Room) *models.FiniteStateMachine {
 func (room *Room) enterWaiting(previous string) {
 	roomView := MakeRoomView(room, true)
 
-	fab.ControllerManager().BroadcastEvent("room", room.GetID(), RoomStates.Waiting, roomView, nil)
+	fab.ControllerManager().BroadcastEvent(room.GetCollectionName(), room.GetID(), RoomStates.Waiting, roomView, nil)
 }
 
 func (room *Room) doWaiting() {
@@ -72,7 +72,7 @@ func (room *Room) enterPlaying(previous string) {
 		"seat": activeSeat.Position,
 	}
 
-	fab.ControllerManager().BroadcastEvent("room", room.GetID(), RoomStates.Playing, roomView, parameters)
+	fab.ControllerManager().BroadcastEvent(room.GetCollectionName(), room.GetID(), RoomStates.Playing, roomView, parameters)
 }
 
 func (room *Room) doPlaying() {
@@ -137,7 +137,7 @@ func (room *Room) enterCompleted(previous string) {
 		"winner": winner,
 	}
 
-	fab.ControllerManager().BroadcastEvent("room", room.GetID(), RoomStates.Completed, roomView, parameters)
+	fab.ControllerManager().BroadcastEvent(room.GetCollectionName(), room.GetID(), RoomStates.Completed, roomView, parameters)
 }
 
 func (room *Room) doCompleted() {

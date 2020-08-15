@@ -30,10 +30,10 @@ func MakeRoom(collection *models.Collection, args ...interface{}) models.Modella
 
 	room.Initialize(collection)
 
-	room.Seats = fab.ModelManager().CreateCollection("room_seats", makeRoomSeat)
+	room.Seats = fab.ModelManager().CreateCollection("room_seat", makeRoomSeat)
 	room.Rankings = make(map[string]int)
 
-	room.actor = fab.ActorManager().RegisterActor(room)
+	room.actor = fab.ActorManager().RegisterActor(room.GetCollectionName(), room)
 	room.State = makeRoomFSM(room)
 
 	helpers.Times(2, func(i int) bool {
@@ -128,7 +128,7 @@ func (room *Room) GrabSeat(player *Player, position int) error {
 		"seat": foundSeat.Position,
 	}
 
-	fab.ControllerManager().BroadcastEvent("room", room.GetID(), "GrabbedSeat", roomView, parameters)
+	fab.ControllerManager().BroadcastEvent(room.GetCollectionName(), room.GetID(), "GrabbedSeat", roomView, parameters)
 
 	return err
 }
@@ -157,7 +157,7 @@ func (room *Room) Leave(player *Player) error {
 			"seat": originalSeat.Position,
 		}
 
-		fab.ControllerManager().BroadcastEvent("room", room.GetID(), "LeftSeat", roomView, parameters)
+		fab.ControllerManager().BroadcastEvent(room.GetCollectionName(), room.GetID(), "LeftSeat", roomView, parameters)
 	}
 
 	return err
@@ -225,7 +225,7 @@ func (room *Room) MakeMove(player *Player, x int, y int) error {
 		"cellY": y,
 	}
 
-	fab.ControllerManager().BroadcastEvent("room", room.GetID(), "MadeMove", roomView, parameters)
+	fab.ControllerManager().BroadcastEvent(room.GetCollectionName(), room.GetID(), "MadeMove", roomView, parameters)
 
 	return err
 }

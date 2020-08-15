@@ -11,8 +11,8 @@ import (
 func main() {
 	fab.Setup()
 
-	models.PlayersCollection = fab.ModelManager().CreateCollection("players", models.MakePlayer)
-	models.RoomsCollection = fab.ModelManager().CreateCollection("rooms", models.MakeRoom)
+	models.PlayersCollection = fab.ModelManager().CreateCollection("player", models.MakePlayer)
+	models.RoomsCollection = fab.ModelManager().CreateCollection("room", models.MakeRoom)
 
 	models.RoomsCollection.Create()
 	models.RoomsCollection.Create()
