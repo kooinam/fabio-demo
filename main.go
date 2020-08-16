@@ -22,7 +22,7 @@ func main() {
 	fab.ControllerManager().RegisterController("player", &controllers.PlayersController{})
 	fab.ControllerManager().RegisterController("room", &controllers.RoomsController{})
 
-	fab.ControllerManager().Serve(func() {
+	fab.ControllerManager().Serve("8000", func() {
 		fs := http.FileServer(http.Dir("./demo"))
 		http.Handle("/demo/", http.StripPrefix("/demo/", fs))
 	})

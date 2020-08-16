@@ -17,7 +17,7 @@ var RoomsCollection *models.Collection
 // Room used to represent room data
 type Room struct {
 	models.Base
-	actor    *actors.Actor
+	Actor    *actors.Actor
 	State    *models.FiniteStateMachine `json:"-"`
 	Seats    *models.Collection         `json:"-"`
 	Cells    [gridSize][gridSize]int    `json:"cells"`
@@ -33,7 +33,7 @@ func MakeRoom(collection *models.Collection, args ...interface{}) models.Modella
 	room.Seats = fab.ModelManager().CreateCollection("room_seat", makeRoomSeat)
 	room.Rankings = make(map[string]int)
 
-	room.actor = fab.ActorManager().RegisterActor(room.GetCollectionName(), room)
+	room.Actor = fab.ActorManager().RegisterActor(room.GetCollectionName(), room)
 	room.State = makeRoomFSM(room)
 
 	helpers.Times(2, func(i int) bool {
@@ -74,12 +74,35 @@ func JoinRoom(player *Player, roomID string) (*Room, error) {
 }
 
 func (room *Room) RegisterActions(actionsHandler *actors.ActionsHandler) {
-	actionsHandler.RegisterAction("Update", room.Run)
+	actionsHandler.RegisterAction("Update", room.run)
+	actionsHandler.RegisterAction("GrabSeat", room.grabSeat)
+	actionsHandler.RegisterAction("Leave", room.leave)
+	actionsHandler.RegisterAction("MakeMove", room.makeMove)
 }
 
-// GrabSeat used to grab a seat in room
-func (room *Room) GrabSeat(player *Player, position int) error {
+// GetSeats used to get RoomSeat collection
+func (room *Room) GetSeats() []*RoomSeat {
+	seats := assertRoomSeats(room.Seats.GetItems())
+
+	return seats
+}
+
+// run to run room regularly
+func (room *Room) run(context *actors.Context) error {
 	var err error
+
+	room.State.Run(room)
+
+	return err
+}
+
+// grabSeat used to grab a seat in room
+func (room *Room) grabSeat(context *actors.Context) error {
+	var err error
+
+	playerID := context.ParamsStr("playerID")
+	player := PlayersCollection.FindByID(playerID).(*Player)
+	position := context.ParamsInt("position", -1)
 
 	originalSeat, asserted := room.Seats.Find(func(item models.Modellable) bool {
 		seat := item.(*RoomSeat)
@@ -124,7 +147,7 @@ func (room *Room) GrabSeat(player *Player, position int) error {
 	}
 
 	roomView := MakeRoomView(room, true)
-	parameters := fab.H{
+	parameters := helpers.H{
 		"seat": foundSeat.Position,
 	}
 
@@ -133,9 +156,12 @@ func (room *Room) GrabSeat(player *Player, position int) error {
 	return err
 }
 
-// Leave used to leave room
-func (room *Room) Leave(player *Player) error {
+// leave used to leave room
+func (room *Room) leave(context *actors.Context) error {
 	var err error
+
+	playerID := context.ParamsStr("playerID")
+	player := PlayersCollection.FindByID(playerID).(*Player)
 
 	originalSeat, asserted := room.Seats.Find(func(item models.Modellable) bool {
 		seat := item.(*RoomSeat)
@@ -153,7 +179,7 @@ func (room *Room) Leave(player *Player) error {
 
 	if originalSeat != nil {
 		roomView := MakeRoomView(room, true)
-		parameters := fab.H{
+		parameters := helpers.H{
 			"seat": originalSeat.Position,
 		}
 
@@ -163,9 +189,14 @@ func (room *Room) Leave(player *Player) error {
 	return err
 }
 
-// MakeMove for player to make move in room
-func (room *Room) MakeMove(player *Player, x int, y int) error {
+// makeMove for player to make move in room
+func (room *Room) makeMove(context *actors.Context) error {
 	var err error
+
+	x := context.ParamsInt("x", -1)
+	y := context.ParamsInt("y", -1)
+	playerID := context.ParamsStr("playerID")
+	player := PlayersCollection.FindByID(playerID).(*Player)
 
 	if x < 0 || x >= gridSize || y < 0 || y >= gridSize {
 		err = fmt.Errorf("index is invalid")
@@ -199,7 +230,7 @@ func (room *Room) MakeMove(player *Player, x int, y int) error {
 		return err
 	}
 
-	if activeSeat.hasMadeMove {
+	if playerSeat.hasMadeMove {
 		err = fmt.Errorf("player has made move")
 
 		return err
@@ -213,37 +244,25 @@ func (room *Room) MakeMove(player *Player, x int, y int) error {
 		return err
 	}
 
+	room.populateCell(playerSeat, x, y)
+
+	return err
+}
+
+func (room *Room) populateCell(seat *RoomSeat, x int, y int) {
 	// cell is not taken. make move
-	activeSeat.hasMadeMove = true
-	room.Cells[x][y] = playerSeat.Position
+	seat.hasMadeMove = true
+	room.Cells[x][y] = seat.Position
 
 	// broadcast make move event
 	roomView := MakeRoomView(room, true)
-	parameters := fab.H{
-		"seat":  activeSeat.Position,
+	parameters := helpers.H{
+		"seat":  seat.Position,
 		"cellX": x,
 		"cellY": y,
 	}
 
 	fab.ControllerManager().BroadcastEvent(room.GetCollectionName(), room.GetID(), "MadeMove", roomView, parameters)
-
-	return err
-}
-
-// GetSeats used to get RoomSeat collection
-func (room *Room) GetSeats() []*RoomSeat {
-	seats := assertRoomSeats(room.Seats.GetItems())
-
-	return seats
-}
-
-// Run to run room every regularly
-func (room *Room) Run(context *actors.Context) error {
-	var err error
-
-	room.State.Run(room)
-
-	return err
 }
 
 func (room *Room) resetCells() {

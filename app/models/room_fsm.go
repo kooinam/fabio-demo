@@ -58,7 +58,7 @@ func (room *Room) doWaiting() {
 	if emptySeat == nil {
 		firstSeat := room.Seats.First()
 
-		room.State.SetTurn(firstSeat, time.Now().Add(RoomStates.WaitingDuration))
+		room.State.SetTurn(firstSeat, time.Now().Add(RoomStates.PlayingDuration))
 
 		room.State.GoTo(RoomStates.Playing, room)
 	}
@@ -68,7 +68,7 @@ func (room *Room) enterPlaying(previous string) {
 	activeSeat := room.State.GetActiveAgent().(*RoomSeat)
 
 	roomView := MakeRoomView(room, true)
-	parameters := fab.H{
+	parameters := helpers.H{
 		"seat": activeSeat.Position,
 	}
 
@@ -85,7 +85,7 @@ func (room *Room) doPlaying() {
 			for x := range room.Cells {
 				for y := range room.Cells[x] {
 					if room.Cells[x][y] == -1 {
-						room.MakeMove(activeSeat.player, x, y)
+						room.populateCell(activeSeat, x, y)
 
 						break
 					}
@@ -133,7 +133,7 @@ func (room *Room) enterCompleted(previous string) {
 
 	// broadcast completed event
 	roomView := MakeRoomView(room, true)
-	parameters := fab.H{
+	parameters := helpers.H{
 		"winner": winner,
 	}
 

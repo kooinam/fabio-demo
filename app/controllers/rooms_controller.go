@@ -3,9 +3,12 @@ package controllers
 import (
 	"fmt"
 
+	fab "github.com/kooinam/fabio"
+
 	"github.com/kooinam/fabio-demo/app/models"
 
 	"github.com/kooinam/fabio/controllers"
+	"github.com/kooinam/fabio/helpers"
 	Models "github.com/kooinam/fabio/models"
 )
 
@@ -99,7 +102,6 @@ func (controller *RoomsController) grabSeat(context *controllers.Context) (inter
 	var err error
 	var roomView interface{}
 
-	currentPlayer := context.Property("CurrentPlayer").(*models.Player)
 	currentRoom, asserted := context.Property("CurrentRoom").(*models.Room)
 
 	if asserted == false {
@@ -108,9 +110,13 @@ func (controller *RoomsController) grabSeat(context *controllers.Context) (inter
 		return roomView, err
 	}
 
-	position := context.ParamsInt("position", -1)
+	currentPlayer := context.Property("CurrentPlayer").(*models.Player)
+	position := context.Params("position")
 
-	err = currentRoom.GrabSeat(currentPlayer, int(position))
+	err = fab.ActorManager().Request(currentRoom.Actor.Identifier(), "GrabSeat", helpers.H{
+		"playerID": currentPlayer.ID,
+		"position": position,
+	})
 
 	if err != nil {
 		return roomView, err
@@ -126,7 +132,6 @@ func (controller *RoomsController) leave(context *controllers.Context) (interfac
 	var err error
 	var roomView interface{}
 
-	currentPlayer := context.Property("CurrentPlayer").(*models.Player)
 	currentRoom, asserted := context.Property("CurrentRoom").(*models.Room)
 
 	if asserted == false {
@@ -135,7 +140,11 @@ func (controller *RoomsController) leave(context *controllers.Context) (interfac
 		return roomView, err
 	}
 
-	err = currentRoom.Leave(currentPlayer)
+	currentPlayer := context.Property("CurrentPlayer").(*models.Player)
+
+	err = fab.ActorManager().Request(currentRoom.Actor.Identifier(), "Leave", helpers.H{
+		"playerID": currentPlayer.ID,
+	})
 
 	if err != nil {
 		return roomView, err
@@ -151,7 +160,6 @@ func (controller *RoomsController) makeMove(context *controllers.Context) (inter
 	var err error
 	var roomView interface{}
 
-	currentPlayer := context.Property("CurrentPlayer").(*models.Player)
 	currentRoom, asserted := context.Property("CurrentRoom").(*models.Room)
 
 	if asserted == false {
@@ -160,10 +168,15 @@ func (controller *RoomsController) makeMove(context *controllers.Context) (inter
 		return roomView, err
 	}
 
-	x := context.ParamsInt("x", -1)
-	y := context.ParamsInt("y", -1)
+	currentPlayer := context.Property("CurrentPlayer").(*models.Player)
+	x := context.Params("x")
+	y := context.Params("y")
 
-	err = currentRoom.MakeMove(currentPlayer, x, y)
+	err = fab.ActorManager().Request(currentRoom.Actor.Identifier(), "MakeMove", helpers.H{
+		"playerID": currentPlayer.ID,
+		"x":        x,
+		"y":        y,
+	})
 
 	if err == nil {
 		roomView = models.MakeRoomView(currentRoom, true)
