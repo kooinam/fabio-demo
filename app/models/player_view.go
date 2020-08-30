@@ -4,15 +4,19 @@ import (
 	"github.com/kooinam/fabio/helpers"
 )
 
+// PlayerView used to represent player's view
+type PlayerView struct {
+	*Player
+	AuthenticationToken string `json:"authenticationToken,omitempty"`
+}
+
 // MakePlayerView used to instantiate player's view
 func MakePlayerView(player *Player, includeRoot bool) interface{} {
 	var view interface{}
 
 	if player != nil {
 		// only marshal json if player is not nil, return nil otherwise
-		playerView := &struct {
-			*Player
-		}{
+		playerView := &PlayerView{
 			Player: player,
 		}
 
@@ -28,12 +32,9 @@ func MakeAuthenticatedPlayerView(player *Player, includeRoot bool) interface{} {
 
 	if player != nil {
 		// only marshal json if player is not nil, return nil otherwise
-		playerView := &struct {
-			*Player
-			AuthenticationToken string `json:"authenticationToken"`
-		}{
+		playerView := &PlayerView{
 			Player:              player,
-			AuthenticationToken: player.authenticationToken,
+			AuthenticationToken: player.AuthenticationToken,
 		}
 
 		view = helpers.IncludeRootInJSON(playerView, includeRoot, "player")

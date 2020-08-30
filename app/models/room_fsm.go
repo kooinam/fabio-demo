@@ -49,14 +49,14 @@ func (room *Room) enterWaiting(previous string) {
 }
 
 func (room *Room) doWaiting() {
-	emptySeat := room.Seats.Find(func(item models.Modellable) bool {
+	emptySeat := room.Seats.List().Find(func(item models.Modellable) bool {
 		seat := item.(*RoomSeat)
 
 		return seat.isEmpty()
 	})
 
 	if emptySeat == nil {
-		firstSeat := room.Seats.First()
+		firstSeat := room.Seats.List().First()
 
 		room.State.SetTurn(firstSeat, time.Now().Add(RoomStates.PlayingDuration))
 
@@ -121,7 +121,7 @@ func (room *Room) doPlaying() {
 func (room *Room) enterCompleted(previous string) {
 	// increment winner in ranking
 	winner := room.getWinner()
-	winnerSeat, asserted := room.Seats.Find(func(item models.Modellable) bool {
+	winnerSeat, asserted := room.Seats.List().Find(func(item models.Modellable) bool {
 		seat := item.(*RoomSeat)
 
 		return seat.Position == winner
@@ -220,7 +220,7 @@ func (room *Room) getWinner() int {
 func (room *Room) getNextSeat() *RoomSeat {
 	activeSeat := room.State.GetActiveAgent().(*RoomSeat)
 
-	nextSeat := room.Seats.Find(func(item models.Modellable) bool {
+	nextSeat := room.Seats.List().Find(func(item models.Modellable) bool {
 		seat := item.(*RoomSeat)
 
 		return seat.Position > activeSeat.Position
@@ -228,7 +228,7 @@ func (room *Room) getNextSeat() *RoomSeat {
 
 	if nextSeat == nil {
 		// cant find seat's position that is greater active seat's position
-		nextSeat = room.Seats.First().(*RoomSeat)
+		nextSeat = room.Seats.List().First().(*RoomSeat)
 	}
 
 	return nextSeat.(*RoomSeat)

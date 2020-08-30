@@ -4,6 +4,14 @@ import (
 	"github.com/kooinam/fabio/helpers"
 )
 
+// RoomView used to represent simple room's view
+type SimpleRoomView struct {
+	ID              string `json:"id"`
+	State           string `json:"state"`
+	MembersCount    int    `json:"membersCount"`
+	MaxMembersCount int    `json:"maxMembersCount"`
+}
+
 // RoomView used to represent room's view
 type RoomView struct {
 	*Room
@@ -13,9 +21,22 @@ type RoomView struct {
 	ActiveSeatPosition int             `json:"activeSeatPosition"`
 }
 
+func MakeSimpleRoomView(room *Room, includeRoot bool) interface{} {
+	roomView := &SimpleRoomView{
+		ID:              room.GetID(),
+		State:           room.State.GetName(),
+		MembersCount:    room.MembersCount,
+		MaxMembersCount: room.MaxMembersCount,
+	}
+
+	view := helpers.IncludeRootInJSON(roomView, includeRoot, "room")
+
+	return view
+}
+
 // MakeRoomView used to instantiate room's view
 func MakeRoomView(room *Room, includeRoot bool) interface{} {
-	seatViews := make([]*RoomSeatView, room.Seats.Count())
+	seatViews := make([]*RoomSeatView, room.Seats.List().Count())
 
 	for i, seat := range room.GetSeats() {
 		seatViews[i] = MakeRoomSeatView(seat)

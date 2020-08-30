@@ -2,10 +2,10 @@ var sessionSocket = null;
 
 function getAuthenticationToken() {
   return localStorage.getItem("authenticationToken");
-
 }
+
 function setupSessionSocket() {
-  const url = 'http://0.0.0.0:8000/session';
+  const url = '/sessions';
   sessionSocket = io(url, {
     transports: ['websocket'],
   });
@@ -25,7 +25,7 @@ function authenticate() {
   sessionSocket.emit('Authenticate', handleRequestData({
     roomId: 1,
   }), function (raw) {
-    handleReponseData(raw, onAuthenticated, handleErrors)
+    handleReponseData(raw, onAuthenticated, handleError);
   });
 }
 
@@ -34,7 +34,7 @@ function onAuthenticated(data) {
 
   localStorage.setItem("authenticationToken", reducer.player.authenticationToken);
 
-  populateRooms()
+  populateRooms();
 }
 
 function updatePlayer(data) {

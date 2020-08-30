@@ -1,7 +1,7 @@
 var playerSocket = null;
 
 function setupPlayerSocket() {
-  const url = 'http://0.0.0.0:8000/player';
+  const url = '/players';
   playerSocket = io(url, {
     transports: ['websocket'],
   });
@@ -14,5 +14,11 @@ function setupPlayerSocket() {
     console.log('disconnected player socket...');
 
     reducer.player = null;
+  });
+}
+
+function register() {
+  playerSocket.emit('Register', handleRequestData({}), function (raw) {
+    handleReponseData(raw, onAuthenticated, handleError)
   });
 }

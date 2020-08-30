@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"fmt"
+
 	"github.com/kooinam/fabio-demo/app/models"
 
 	"github.com/kooinam/fabio/controllers"
@@ -10,23 +12,24 @@ import (
 type SessionsController struct {
 }
 
-// RegisterBeforeHooks used to register before action hooks
-func (controller *SessionsController) RegisterBeforeHooks(hooksHandler *controllers.HooksHandler) {
-}
-
-// RegisterActions used to register actions
-func (controller *SessionsController) RegisterActions(actionsHandler *controllers.ActionsHandler) {
+// RegisterHooksAndActions used to register hooks and actions
+func (controller *SessionsController) RegisterHooksAndActions(hooksHandler *controllers.HooksHandler, actionsHandler *controllers.ActionsHandler) {
 	actionsHandler.RegisterAction("Authenticate", controller.authenticate)
 }
 
 // authenticate used to authenticate a player
-func (controller *SessionsController) authenticate(connection *controllers.Context) (interface{}, error) {
-	var playerView interface{}
+func (controller *SessionsController) authenticate(context *controllers.Context) {
+	authenticationToken := context.ParamsStr("authenticationToken")
 
-	authenticationToken := connection.ParamsStr("authenticationToken")
+	result := models.FindPlayerByToken(authenticationToken)
 
-	player := models.AuthenticatePlayer(authenticationToken)
-	playerView = models.MakeAuthenticatedPlayerView(player, true)
+	if !result.StatusSuccess() {
+		err := fmt.Errorf("unauthorized")
+		context.SetErrorResult(controllers.StatusUnauthorized, err)
+		return
+	}
 
-	return playerView, nil
+	playerView := models.MakeAuthenticatedPlayerView(result.Item().(*models.Player), true)
+
+	context.SetSuccessResult(playerView)
 }

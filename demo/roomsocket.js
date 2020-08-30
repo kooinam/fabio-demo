@@ -1,7 +1,7 @@
 var roomSocket = null;
 
 function setupRoomSocket() {
-  const url = 'http://0.0.0.0:8000/room';
+  const url = '/rooms';
   roomSocket = io(url, {
     transports: ['websocket'],
   });
@@ -39,6 +39,19 @@ function setupRoomSocket() {
       });
     });
   }
+
+  roomSocket.on('RoomUpdated', function(raw) {
+    const data = JSON.parse(raw);
+    const room = _.find(reducer.rooms, function (room) {
+      return room.id == data.response.room.id;
+    });
+
+    room.state = data.response.room.state;
+    room.maxMembersCount = data.response.room.maxMembersCount;
+    room.membersCount = data.response.room.membersCount;
+
+    reloadUI();
+  });
 }
 
 function populateRooms() {
@@ -47,7 +60,7 @@ function populateRooms() {
       reducer.rooms = data.response.rooms;
 
       reloadUI();
-    }, handleErrors)
+    }, handleError)
   });
 }
 
@@ -55,13 +68,13 @@ function join(roomID) {
   roomSocket.emit('Join', handleRequestData({
     roomID: roomID,
   }), function(raw) {
-    handleReponseData(raw, onRoomJoined, handleErrors);
+    handleReponseData(raw, onRoomJoined, handleError);
   });
 }
 
 function leave() {
   roomSocket.emit('Leave', handleRequestData({}), function(raw) {
-    handleReponseData(raw, onRoomLeft, handleErrors);
+    handleReponseData(raw, onRoomLeft, handleError);
   });
 }
 
@@ -69,7 +82,7 @@ function grabSeat(position) {
   roomSocket.emit('GrabSeat', handleRequestData({
     position: position,
   }), function(raw) {
-    handleReponseData(raw, null, handleErrors);
+    handleReponseData(raw, null, handleError);
   });
 }
 
@@ -78,9 +91,7 @@ function makeMove(x, y) {
     x: x,
     y: y,
   }), function (raw) {
-    handleReponseData(raw, function(data) {
-
-    }, handleErrors)
+    handleReponseData(raw, function(data) {}, handleError)
   });
 }
 

@@ -3,25 +3,18 @@ package models
 import (
 	"fmt"
 
+	"github.com/kooinam/fabio/helpers"
+
 	"github.com/kooinam/fabio/models"
+	"github.com/kooinam/fabio/simplerecords"
 )
 
 // RoomSeat is used to represent seat in room
 type RoomSeat struct {
-	models.Base
+	simplerecords.Base
 	Position    int `json:"position"`
 	player      *Player
 	hasMadeMove bool
-}
-
-func makeRoomSeat(collection *models.Collection, args ...interface{}) models.Modellable {
-	roomSeat := &RoomSeat{}
-
-	roomSeat.Initialize(collection)
-
-	roomSeat.Position = args[0].(int)
-
-	return roomSeat
 }
 
 // assertRoomSeats used to convert items to room seats
@@ -33,6 +26,18 @@ func assertRoomSeats(items []models.Modellable) []*RoomSeat {
 	}
 
 	return seats
+}
+
+func makeRoomSeat(collection *models.Collection, hooksHandler *models.HooksHandler) models.Modellable {
+	seat := &RoomSeat{}
+
+	hooksHandler.RegisterInitializeHook(seat.initialize)
+
+	return seat
+}
+
+func (seat *RoomSeat) initialize(attributes *helpers.Dictionary) {
+	seat.Position = attributes.ValueInt("position", 0)
 }
 
 // Grab used to grab seat

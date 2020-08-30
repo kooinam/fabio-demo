@@ -23,7 +23,7 @@
   function handleReponseData(raw, successCallback, errorCallback) {
     const data = JSON.parse(raw);
 
-    if (data.Status == 200) {
+    if (data.status == "success") {
       if (successCallback) {
         successCallback(data);
       }
@@ -44,8 +44,8 @@
     return JSON.stringify(Object.assign(preset, data));
   }
 
-  function handleErrors(data) {
-    alert(`${data.Status} - ${data.Errors.Messages}`);
+  function handleError(data) {
+    alert(`${data.status} - ${data.error}`);
   }
 
   function toggleElementIsActive(s, isActive) {
@@ -90,25 +90,25 @@
     const room = reducer.room;
     const rooms = reducer.rooms;
 
+    toggleElementIsActive("#registerSection", !hasAuthenticated());
     toggleElementIsActive("#playerSection", hasAuthenticated());
     toggleElementIsActive("#joinSection", !hasJoined() && hasAuthenticated());
 
     const roomsContent = _.map(rooms, function (room) {
-      const grabbedSeats = _.filter(room.seats, function(seat) {
-        return seat.player != null;
-      });
-
       const roomContent = `
           <div class="col-sm-3">
             <div class="panel panel-default">
               <div class="panel-heading">
-                Room #${room.id}
+                ${room.name}
               </div>
               <div class="panel-body">
-                <div>
-                  ${grabbedSeats.length} / ${room.seats.length}
+                <div class="label label-primary">
+                  ${room.state}
                 </div>
-                <button onclick="join(${room.id})">
+                <div>
+                  ${room.membersCount} / ${room.maxMembersCount}
+                </div>
+                <button onclick="join('${room.id}')">
                   JOIN
                 </button>
               </div>
@@ -123,11 +123,11 @@
     toggleElementIsActive("#roomSection", hasJoined());
 
     if (hasAuthenticated()) {
-      setElementContent("#playerSection #playerName", `Hi, ${player.Name}`);
+      setElementContent("#playerSection #playerName", `Hi, ${player.name}`);
     }
 
     if (hasJoined()) {
-      setElementContent("#roomSection #roomName", `Room #${room.id} - ${room.state}`)
+      setElementContent("#roomSection #roomName", `${room.name} - ${room.state}`)
 
       const rankingElements = _.map(reducer.room.rankings, function (winCount, playerName) {
         return `
@@ -151,7 +151,7 @@
         if (seat.player) {
           seatDetailsContent = `
             <div>
-              ${seat.player.Name}
+              ${seat.player.name}
             </div>
           `;
 
@@ -262,12 +262,17 @@
 </script>
 
 <div class="container">
+  <h4 id="registerSection">
+    <button onclick="register()">
+      Register
+    </button>
+  </h4>
+
   <h4 id="playerSection">
     <div id="playerName">
     </div>
+    <hr />
   </h4>
-
-  <hr />
 
   <div id="joinSection">
     <div id="roomsSection" class="row">
