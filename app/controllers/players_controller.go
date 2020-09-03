@@ -16,7 +16,7 @@ func (controller *PlayersController) RegisterHooksAndActions(hooksHandler *contr
 }
 
 func (controller *PlayersController) register(context *controllers.Context) {
-	result := models.PlayersCollection.Create(helpers.H{})
+	result := models.PlayersCollection().Create(helpers.H{})
 
 	if result.StatusError() {
 		context.SetErrorResult(controllers.StatusError, result.Error())

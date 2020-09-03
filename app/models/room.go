@@ -12,8 +12,10 @@ import (
 
 const gridSize = 3
 
-// RoomsCollection is singleton for RoomsCollection
-var RoomsCollection *models.Collection
+// RoomsCollection used to retrieve registered rooms collections
+func RoomsCollection() *models.Collection {
+	return fab.ModelManager().Collection("mongo", "rooms")
+}
 
 // Room used to represent room data
 type Room struct {
@@ -106,7 +108,7 @@ func JoinRoom(player *Player, roomID string) (*Room, error) {
 
 	var err error
 
-	item := RoomsCollection.List().FindByID(roomID)
+	item := RoomsCollection().List().FindByID(roomID)
 
 	if item == nil {
 		err = fmt.Errorf("room not found")
@@ -136,7 +138,7 @@ func (room *Room) grabSeat(context *actors.Context) error {
 	var err error
 
 	playerID := context.ParamsStr("playerID")
-	result := PlayersCollection.Query().Find(playerID)
+	result := PlayersCollection().Query().Find(playerID)
 
 	if result.StatusError() {
 		return result.Error()
@@ -206,7 +208,7 @@ func (room *Room) leave(context *actors.Context) error {
 	var err error
 
 	playerID := context.ParamsStr("playerID")
-	result := PlayersCollection.Query().Find(playerID)
+	result := PlayersCollection().Query().Find(playerID)
 
 	if result.StatusError() {
 		return result.Error()
@@ -251,7 +253,7 @@ func (room *Room) makeMove(context *actors.Context) error {
 	x := context.ParamsInt("x", -1)
 	y := context.ParamsInt("y", -1)
 	playerID := context.ParamsStr("playerID")
-	result := PlayersCollection.Query().Find(playerID)
+	result := PlayersCollection().Query().Find(playerID)
 
 	if result.StatusError() {
 		return result.Error()

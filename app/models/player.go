@@ -1,14 +1,17 @@
 package models
 
 import (
+	fab "github.com/kooinam/fabio"
 	"github.com/kooinam/fabio/helpers"
 	"github.com/kooinam/fabio/models"
 	"github.com/kooinam/fabio/mongorecords"
 	"syreclabs.com/go/faker"
 )
 
-// PlayersCollection is singleton for RoomsCollection
-var PlayersCollection *models.Collection
+// PlayersCollection used to retrieve registered players collections
+func PlayersCollection() *models.Collection {
+	return fab.ModelManager().Collection("mongo", "players")
+}
 
 // Player used to represents player
 type Player struct {
@@ -19,7 +22,7 @@ type Player struct {
 
 // FindPlayerByToken used to find a player by token
 func FindPlayerByToken(token string) *models.SingleResult {
-	result := PlayersCollection.Query().Where(helpers.H{
+	result := PlayersCollection().Query().Where(helpers.H{
 		"authentication_token": token,
 	}).First()
 

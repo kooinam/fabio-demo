@@ -1,10 +1,10 @@
-package models
+package views
 
 import (
 	"github.com/kooinam/fabio/helpers"
 )
 
-// SimpleRoomView used to represent simple room's view
+// RoomView used to represent simple room's view
 type SimpleRoomView struct {
 	ID              string `json:"id"`
 	State           string `json:"state"`

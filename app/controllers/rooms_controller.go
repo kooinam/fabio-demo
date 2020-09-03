@@ -52,7 +52,7 @@ func (controller *RoomsController) setCurrentPlayer(action string, context *cont
 func (controller *RoomsController) setCurrentRoom(action string, context *controllers.Context) {
 	roomID := context.ParamsStr("roomID")
 
-	room := models.RoomsCollection.List().FindByID(roomID)
+	room := models.RoomsCollection().List().FindByID(roomID)
 
 	if room != nil {
 		context.SetProperty("CurrentRoom", room)
@@ -72,7 +72,7 @@ func (controller *RoomsController) list(context *controllers.Context) {
 
 	// context.SetSuccessResult(roomsView)
 
-	items := models.RoomsCollection.List().Items()
+	items := models.RoomsCollection().List().Items()
 
 	rooms := models.AssertRooms(items)
 	roomsView := models.MakeRoomsView(rooms)
